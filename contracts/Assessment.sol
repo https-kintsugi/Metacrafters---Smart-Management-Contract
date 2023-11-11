@@ -10,7 +10,7 @@ contract Assessment {
     event Deposit(uint256 amount);
     event Withdraw(uint256 amount);
 
-    constructor(uint initBalance) payable {
+    constructor(uint256 initBalance) payable {
         owner = payable(msg.sender);
         balance = initBalance;
     }
@@ -19,17 +19,21 @@ contract Assessment {
         return balance;
     }
 
-    function deposit(uint256 _amount) public payable {
-        uint _previousBalance = balance;
-
-        // make sure this is the owner
+    modifier onlyOwner() {
         require(msg.sender == owner, "You are not the owner of this account");
+        _;
+    }
+
+    function deposit(uint256 _amount) public payable onlyOwner {
+        require(_amount > 0, "Deposit amount must be greater than 0");
+
+        uint256 _previousBalance = balance;
 
         // perform transaction
         balance += _amount;
 
         // assert transaction completed successfully
-        assert(balance == _previousBalance + _amount);
+        require(balance == _previousBalance + _amount, "Deposit failed");
 
         // emit the event
         emit Deposit(_amount);
@@ -38,21 +42,17 @@ contract Assessment {
     // custom error
     error InsufficientBalance(uint256 balance, uint256 withdrawAmount);
 
-    function withdraw(uint256 _withdrawAmount) public {
-        require(msg.sender == owner, "You are not the owner of this account");
-        uint _previousBalance = balance;
-        if (balance < _withdrawAmount) {
-            revert InsufficientBalance({
-                balance: balance,
-                withdrawAmount: _withdrawAmount
-            });
-        }
+    function withdraw(uint256 _withdrawAmount) public payable onlyOwner {
+        require(_withdrawAmount > 0, "Withdraw amount must be greater than 0");
+        require(_withdrawAmount <= balance, "Insufficient balance");
+
+        uint256 _previousBalance = balance;
 
         // withdraw the given amount
         balance -= _withdrawAmount;
 
         // assert the balance is correct
-        assert(balance == (_previousBalance - _withdrawAmount));
+        require(balance == (_previousBalance - _withdrawAmount), "Withdraw failed");
 
         // emit the event
         emit Withdraw(_withdrawAmount);
